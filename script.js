@@ -281,21 +281,31 @@ function toggleCustomType() {
     } else {
         customTypeInput.style.display = 'none';
         customTypeInput.required = false;
+        customTypeInput.value = '';
     }
 }
 
 function loadItemTypeOptions() {
     let typeSelect = document.getElementById('itemType');
-    while (typeSelect.options.length > 6) { // Mantener las 5 opciones iniciales + "OTRO"
+    
+    // Mantener solo las opciones iniciales (las primeras 6)
+    while (typeSelect.options.length > 6) {
         typeSelect.remove(6);
     }
     
+    // Obtener tipos únicos del inventario, excluyendo "OTRO"
     let existingTypes = [...new Set(inventory.map(item => item.type))].filter(t => t !== 'OTRO');
+    
+    // Filtrar tipos que no están ya en las opciones iniciales
+    const initialOptions = ['BRAZALETE REUSABLE', 'MANGO DE LARINGOSCOPIO', 'FOCO DE HALÓGENO', 'JUEGO DE CAMPANAS', 'BATERÍA RECARGABLE'];
+    existingTypes = existingTypes.filter(type => !initialOptions.includes(type));
+    
+    // Agregar los tipos adicionales encontrados en el inventario
     existingTypes.forEach(type => {
         let option = document.createElement('option');
         option.value = type;
         option.textContent = type;
-        typeSelect.insertBefore(option, typeSelect.options[typeSelect.options.length - 1]);
+        typeSelect.insertBefore(option, typeSelect.options[typeSelect.options.length - 1]); // Insertar antes de "OTRO"
     });
 }
 
@@ -320,7 +330,15 @@ function editItem(id) {
     
     let typeSelect = document.getElementById('itemType');
     typeSelect.value = item.type;
-    toggleCustomType();
+    
+    // Manejar el caso cuando el tipo no está en las opciones
+    if (![...typeSelect.options].some(opt => opt.value === item.type)) {
+        typeSelect.value = 'OTRO';
+        document.getElementById('customType').value = item.type;
+        document.getElementById('customType').style.display = 'block';
+    } else {
+        document.getElementById('customType').style.display = 'none';
+    }
     
     document.getElementById('itemVoucher').value = item.voucher;
     document.getElementById('itemCharacteristic').value = item.characteristic;
@@ -355,7 +373,11 @@ function saveItem() {
     let itemMinStock = parseInt(document.getElementById('itemMinStock').value);
     let itemExpiration = document.getElementById('itemExpiration').value;
     
-    if (itemType === 'OTRO' && customType) {
+    if (itemType === 'OTRO') {
+        if (!customType) {
+            alert('Por favor especifique el tipo de insumo');
+            return;
+        }
         itemType = customType;
     }
     
